@@ -3,536 +3,198 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>貪食蛇 Snake + 英文單字模式（手機優化）</title>
+  <title>貪食蛇 Snake + 單字提示模式</title>
   <style>
     :root{
-      --bg:#0f172a; /* slate-900 */
-      --panel:#111827cc; /* gray-900/80 */
-      --text:#e5e7eb; /* gray-200 */
-      --muted:#94a3b8; /* slate-400 */
-      --accent:#22c55e; /* green-500 */
-      --accent-2:#16a34a; /* green-600 */
-      --danger:#ef4444; /* red-500 */
-      --grid:#1f2937; /* gray-800 */
-      --cell:#0b1224;
-      --tile1:#f59e0b; /* amber-500 */
-      --tile2:#b45309; /* amber-700 */
-      --ok:#34d399; /* emerald-400 */
+      --bg:#0f172a;
+      --panel:#111827cc;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#22c55e;
+      --accent-2:#16a34a;
+      --danger:#ef4444;
+      --grid:#1f2937;
+      --tile1:#f59e0b;
+      --tile2:#b45309;
+      --ok:#34d399;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{
-      margin:0; background: radial-gradient(1200px 800px at 70% -10%, #1f2937, var(--bg));
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color:var(--text); display:flex; align-items:center; justify-content:center; padding:16px;
-    }
+    body{ margin:0; background: radial-gradient(1200px 800px at 70% -10%, #1f2937, var(--bg)); font-family: system-ui,-apple-system,"Segoe UI",Roboto,Noto Sans,"Helvetica Neue",Arial; color:var(--text); display:flex; align-items:center; justify-content:center; padding:16px; }
     .app{ width: min(100%, 820px); }
     .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
     .title{ font-weight:800; letter-spacing:.5px; font-size: clamp(20px, 3vw, 28px);}    
-    .panel{ background:linear-gradient(180deg, #0b1224, #0a0f1f); border:1px solid #1f2937; border-radius:16px; box-shadow: 0 10px 30px #0008; }
+    .panel{ background:linear-gradient(180deg, #0b1224, #0a0f1f); border:1px solid #1f2937; border-radius:16px; box-shadow:0 10px 30px #0008; }
     .hud{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; gap:10px; flex-wrap:wrap }
     .hud .stat{ display:flex; gap:6px; align-items:center; font-variant-numeric: tabular-nums; }
     .hud .stat b{ font-size:18px }
     .hud .chip{ padding:6px 10px; border-radius:999px; background:#0b1224; border:1px solid #1f2937; color:var(--muted)}
 
-    .wordbox{ display:flex; align-items:center; gap:10px; }
-    #wordView{ font-weight:800; letter-spacing:2px; font-size: clamp(16px, 3vw, 22px)}
-    #wordView .ok{ color:var(--ok) }
-    #wordView .todo{ color:var(--muted) }
-    #nextLetter{ padding:2px 8px; border-radius:10px; border:1px dashed #334155; color:#f8fafc; background:#0b1224 }
+    .wordbox{ display:flex; align-items:center; gap:10px; font-size: clamp(16px, 3vw, 22px); font-weight:700 }
+    #wordHint{ letter-spacing:2px; color:var(--ok) }
 
-    .canvas-wrap{ position:relative; padding:12px; }
-    canvas{ width:100%; height:auto; display:block; background:linear-gradient(180deg, #0a1326, #091021); border-radius:12px; border:1px solid #1e293b; }
-
-    .controls{ display:grid; grid-template-columns:1fr auto; gap:12px; padding:12px 16px; border-top:1px solid #1e293b; }
-    .btn{ background:#0b1224; border:1px solid #1f2937; color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600; transition: transform .08s ease, background .2s ease, border-color .2s ease; user-select:none; }
-    .btn:hover{ background:#0e1630 }
-    .btn:active{ transform: translateY(1px) }
-    .btn.primary{ background:linear-gradient(180deg, var(--accent), var(--accent-2)); border-color:#065f46 }
-
-    .dpad{ display:grid; grid-template-columns:64px 64px 64px; grid-template-rows:64px 64px 64px; gap:10px; justify-content:center; margin-left:auto; }
-    .dpad .pad{ display:flex; align-items:center; justify-content:center; background:#0b1224; border:1px solid #1f2937; border-radius:14px; font-size:20px; cursor:pointer; }
-    .dpad .pad:active{ transform: translateY(1px) }
-    .pad.empty{ visibility:hidden }
-
-    .footer{ margin-top:14px; color:var(--muted); font-size:12px; text-align:center }
-    .links{ display:flex; gap:10px; justify-content:center; margin-top:6px }
-    .link{ color:#93c5fd; text-decoration:none }
-
-    /* 手機優化 */
-    @media (max-width: 520px){
-      body{ padding:10px }
-      .app{ width:100% }
-      .controls{
-        grid-template-columns:1fr;
-        position: sticky;
-        bottom: 8px;
-        background: linear-gradient(180deg, #0b1224, #0a0f1f);
-        border-top-left-radius:16px;
-        border-top-right-radius:16px;
-      }
-      .btn{ padding:12px 16px; font-size:16px }
-      .dpad{
-        margin: 8px auto 0 auto;
-        grid-template-columns:72px 72px 72px;
-        grid-template-rows:72px 72px 72px;
-        gap:12px;
-      }
-      .dpad .pad{ font-size:24px; border-radius:16px }
-      #wordView{ font-size:18px }
-    }
+    canvas{ width:100%; height:auto; display:block; background:linear-gradient(180deg,#0a1326,#091021); border-radius:12px; border:1px solid #1e293b; margin-top:12px; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="header">
-      <div class="title">🟩 貪食蛇 Snake · 英文單字模式</div>
-      <div class="chip" id="status" style="display:none"></div>
+      <div class="title">🟩 貪食蛇 Snake · 單字提示模式</div>
     </div>
 
     <div class="panel hud">
       <div class="stat">分數：<b id="score">0</b></div>
       <div class="stat">最佳：<b id="best">0</b></div>
-      <div class="stat chip">速度：<b id="speedLabel">中等</b></div>
       <div class="stat chip">剩餘單字：<b id="leftCnt">0</b></div>
       <div class="wordbox">
-        <span>單字：</span>
-        <span id="wordView"><span class="ok"></span><span class="todo"></span></span>
-        <span>下一字母：<span id="nextLetter" aria-live="polite">—</span></span>
+        <span>提示：</span>
+        <span id="wordHint"></span>
       </div>
     </div>
 
-    <div class="panel canvas-wrap">
-      <canvas id="game" width="560" height="560" aria-label="snake game canvas"></canvas>
-    </div>
-
-    <div class="panel controls">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
-        <button class="btn primary" id="toggle">開始</button>
-        <button class="btn" id="reset">重來</button>
-        <label class="btn" style="display:flex; align-items:center; gap:8px">
-          <span>碰壁：
-            <select id="wallMode" style="background:#0b1224; color:var(--text); border:1px solid #1f2937; padding:6px 8px; border-radius:8px">
-              <option value="solid">結束</option>
-              <option value="wrap">穿牆</option>
-            </select>
-          </span>
-        </label>
-        <label class="btn" style="display:flex; align-items:center; gap:8px">
-          <span>速度：
-            <select id="speed" style="background:#0b1224; color:var(--text); border:1px solid #1f2937; padding:6px 8px; border-radius:8px">
-              <option value="150">悠閒</option>
-              <option value="110" selected>中等</option>
-              <option value="80">快速</option>
-              <option value="55">狂熱</option>
-            </select>
-          </span>
-        </label>
-        <span class="btn" style="pointer-events:none;opacity:.8">單字來源：english.txt（同目錄）</span>
-      </div>
-
-      <div class="dpad" aria-label="virtual dpad">
-        <div class="pad empty"></div>
-        <div class="pad" data-dir="up" title="上">▲</div>
-        <div class="pad empty"></div>
-        <div class="pad" data-dir="left" title="左">◀</div>
-        <div class="pad empty"></div>
-        <div class="pad" data-dir="right" title="右">▶</div>
-        <div class="pad empty"></div>
-        <div class="pad" data-dir="down" title="下">▼</div>
-        <div class="pad empty"></div>
-      </div>
-    </div>
-
-    <div class="footer">
-      操作：方向鍵 / WASD、空白鍵暫停、Enter 重來、手機可滑動操控。
+    <div class="panel">
+      <canvas id="game" width="560" height="560"></canvas>
     </div>
   </div>
 
   <script>
-    // --- 基本設定 ---
-    const GRID = 28;          // 格子數（正方形）
-    const CELL = 20;          // 每格像素
-    const CANVAS_SIZE = GRID * CELL;
+    const GRID=28, CELL=20, CANVAS_SIZE=GRID*CELL;
+    const canvas=document.getElementById('game');
+    const ctx=canvas.getContext('2d');
+    canvas.width=CANVAS_SIZE; canvas.height=CANVAS_SIZE;
 
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    canvas.width = CANVAS_SIZE; canvas.height = CANVAS_SIZE;
+    const scoreEl=document.getElementById('score');
+    const bestEl=document.getElementById('best');
+    const leftCntEl=document.getElementById('leftCnt');
+    const wordHint=document.getElementById('wordHint');
 
-    // 解析 CSS 變數成實際顏色（供 Canvas 使用）
-    const cssVars = getComputedStyle(document.documentElement);
-    const COLORS = {
-      tile1: (cssVars.getPropertyValue('--tile1') || '#f59e0b').trim(),
-      tile2: (cssVars.getPropertyValue('--tile2') || '#b45309').trim(),
-    };
+    const BEST_KEY='snake_best_score_v5';
+    let rng=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 
-    const scoreEl = document.getElementById('score');
-    const bestEl = document.getElementById('best');
-    const speedSel = document.getElementById('speed');
-    const speedLabel = document.getElementById('speedLabel');
-    const wallModeSel = document.getElementById('wallMode');
-    const toggleBtn = document.getElementById('toggle');
-    const resetBtn = document.getElementById('reset');
-    const statusChip = document.getElementById('status');
-    const leftCntEl = document.getElementById('leftCnt');
-
-    const wordView = document.getElementById('wordView');
-    const nextLetterEl = document.getElementById('nextLetter');
-
-    const dpad = document.querySelectorAll('.dpad .pad[data-dir]');
-
-    const BEST_KEY = 'snake_best_score_v1';
-
-    let rng = (min, max)=> Math.floor(Math.random()*(max-min+1))+min;
-
-    // --- 單字工具 ---
-    function normalizeWord(w){
-      const s = (w||'').toUpperCase().replace(/[^A-Z]/g,'');
-      return s.length? s : null;
-    }
-    function parseWordText(text){
-      const raw = text.split(/\r?\n|,|;|\t/g).map(s=>s.trim());
-      const arr = [];
-      const seen = new Set();
-      for(const r of raw){
-        const n = normalizeWord(r);
-        if(n && !seen.has(n)) { arr.push(n); seen.add(n); }
+    // 從 english.txt 載入 [英文, 中文提示]
+    async function loadWords(){
+      try{
+        const resp=await fetch('english.txt?v='+Date.now(),{cache:'no-store'});
+        const text=await resp.text();
+        const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
+        return lines.map(line=>{
+          const [en,zh]=line.split(',');
+          return [en.trim().toUpperCase(), (zh||'').trim()];
+        }).filter(p=>p[0]);
+      }catch(e){
+        console.error(e);
+        return [["APPLE","蘋果"],["BANANA","香蕉"]];
       }
-      return arr;
-    }
-    function shuffle(a){
-      for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
-      return a;
     }
 
-    // 遊戲狀態
-    let state = {
-      running: false,
-      over: false,
-      cleared: false,
-      tickMs: parseInt(speedSel.value, 10),
-      wallMode: wallModeSel.value, // 'solid' | 'wrap'
-      score: 0,
-      best: parseInt(localStorage.getItem(BEST_KEY) || '0', 10),
-      dir: {x:1, y:0}, // 目前方向
-      nextDir: {x:1, y:0}, // 將在下一tick套用
-      queue: [], // 緩衝方向，避免連點時逆向
-      snake: [],
-      food: null, // {x,y,char}
-      timer: null,
-      lastTouch: null,
-
-      // 單字模式
-      originalWords: [], // 來源單字
-      wordsQueue: [],    // 尚未完成的單字（隨機順序）
-      currentWord: null, // 目前單字（字串）
-      progress: 0,       // 已完成的字母數
-    };
+    let state={running:true, over:false, score:0, best:parseInt(localStorage.getItem(BEST_KEY)||'0',10), snake:[], dir:{x:1,y:0}, food:[], words:[], queue:[], currentWord:null, currentHint:"", progress:0};
 
     function init(){
-      state.running = false; state.over = false; state.cleared = false; state.score = 0; state.queue = [];
-      state.dir = {x:1, y:0}; state.nextDir = {x:1, y:0};
-      const start = {x: Math.floor(GRID/3), y: Math.floor(GRID/2)};
-      state.snake = [start, {x:start.x-1,y:start.y}, {x:start.x-2,y:start.y}];
-
-      // 若無單字，載入示例
-      if(!state.originalWords.length){
-        state.originalWords = ["APPLE","BANANA","ORANGE","MELON","GRAPE","WATER","SNAKE","GAME","CODE","DEBUG"]; 
-      }
-      state.wordsQueue = shuffle([...state.originalWords]);
-      startNewWord();
-
-      updateHUD();
+      state.snake=[{x:5,y:5},{x:4,y:5},{x:3,y:5}];
+      state.score=0; state.over=false;
+      state.queue=[...state.words];
+      newWord();
       draw();
     }
 
-    function startNewWord(){
-      state.currentWord = state.wordsQueue.shift() || null;
-      state.progress = 0;
-      if(!state.currentWord){
-        // 通關
-        state.running = false; state.over = true; state.cleared = true; clearInterval(state.timer);
-        setStatus('通關！恭喜');
-        draw(); updateHUD();
-        return;
+    function newWord(){
+      const pair=state.queue.shift()||null;
+      if(!pair){ gameClear(); return; }
+      state.currentWord=pair[0];
+      state.currentHint=pair[1];
+      state.progress=0;
+      updateHint();
+      spawnLetters();
+    }
+
+    function updateHint(){
+      // 中文提示 + 英文字樣一起顯示
+      wordHint.textContent = state.currentHint;
+    }
+
+    function spawnLetters(){
+      state.food=[];
+      const correct=state.currentWord[state.progress];
+      placeLetter(correct);
+      const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      for(let i=0;i<3;i++){
+        let fake;
+        do{ fake=alphabet[rng(0,25)]; }while(fake===correct);
+        placeLetter(fake);
       }
-      spawnNextLetter();
-      updateHUD();
     }
 
-    function updateHUD(){
-      scoreEl.textContent = state.score;
-      bestEl.textContent = state.best;
-      speedLabel.textContent = labelForSpeed(state.tickMs);
-      leftCntEl.textContent = Math.max(0, state.wordsQueue.length + (state.currentWord?1:0) - (state.progress?1:0));
-      renderWordView();
-      nextLetterEl.textContent = state.currentWord? state.currentWord[state.progress] : '—';
+    function placeLetter(ch){
+      let p; const occ=new Set(state.snake.map(p=>p.x+","+p.y));
+      do{p={x:rng(0,GRID-1),y:rng(0,GRID-1)}}while(occ.has(p.x+","+p.y));
+      state.food.push({x:p.x,y:p.y,char:ch});
     }
-
-    function renderWordView(){
-      const ok = state.currentWord? state.currentWord.slice(0, state.progress) : '';
-      const todo = state.currentWord? state.currentWord.slice(state.progress) : '';
-      wordView.innerHTML = `<span class="ok">${ok}</span><span class="todo">${todo}</span>`;
-    }
-
-    function labelForSpeed(ms){
-      if(ms <= 60) return '狂熱';
-      if(ms <= 90) return '快速';
-      if(ms <= 130) return '中等';
-      return '悠閒';
-    }
-
-    function spawnNextLetter(){
-      if(!state.currentWord) return;
-      const letter = state.currentWord[state.progress];
-      const occupied = new Set(state.snake.map(p=> p.x+","+p.y));
-      let p;
-      do{ p = {x: rng(0, GRID-1), y: rng(0, GRID-1)} } while(occupied.has(p.x+","+p.y));
-      state.food = {x:p.x, y:p.y, char: letter};
-    }
-
-    function start(){ if(state.over) return; if(state.running) return; state.running=true; schedule(); setStatus('進行中'); toggleBtn.textContent='暫停'; }
-    function pause(){ if(!state.running) return; state.running=false; clearInterval(state.timer); setStatus('已暫停'); toggleBtn.textContent='繼續'; }
-    function toggle(){ state.running ? pause() : start(); }
-    function gameOver(){ state.running=false; state.over=true; clearInterval(state.timer); setStatus('遊戲結束'); toggleBtn.textContent='重新開始'; if(state.score>state.best){ state.best=state.score; localStorage.setItem(BEST_KEY, String(state.best)); } draw(); updateHUD(); }
-
-    function setStatus(msg){ statusChip.style.display='block'; statusChip.textContent = msg; }
-
-    function schedule(){ clearInterval(state.timer); state.timer = setInterval(tick, state.tickMs); }
 
     function tick(){
-      // 套用排隊方向（避免瞬間逆向）
-      if(state.queue.length){
-        const next = state.queue.shift();
-        if(!isReverse(next, state.dir)) state.nextDir = next;
-      }
-      state.dir = state.nextDir;
-
-      const head = state.snake[0];
-      let nx = head.x + state.dir.x;
-      let ny = head.y + state.dir.y;
-
-      if(state.wallMode === 'wrap'){
-        nx = (nx + GRID) % GRID; ny = (ny + GRID) % GRID;
-      }else{
-        if(nx<0 || nx>=GRID || ny<0 || ny>=GRID){
-          return gameOver();
-        }
-      }
-
-      const newHead = {x:nx, y:ny};
-
-      // 自撞
-      if(state.snake.some((p,i)=> i>0 && p.x===newHead.x && p.y===newHead.y)){
-        return gameOver();
-      }
-
+      const head=state.snake[0];
+      const nx=head.x+state.dir.x, ny=head.y+state.dir.y;
+      if(nx<0||nx>=GRID||ny<0||ny>=GRID){gameOver();return;}
+      const newHead={x:nx,y:ny};
+      if(state.snake.some((p,i)=>i>0&&p.x===nx&&p.y===ny)){gameOver();return;}
       state.snake.unshift(newHead);
-
-      if(state.food && newHead.x===state.food.x && newHead.y===state.food.y){
-        // 吃到正確下一字母
-        if(state.currentWord && state.food.char === state.currentWord[state.progress]){
-          state.score += 1;
-          // 提升一點速度（最低 55ms）
-          if(state.tickMs > 55 && state.score % 5 === 0){
-            state.tickMs -= 5; schedule();
+      let ate=false;
+      for(const f of state.food){
+        if(f.x===nx&&f.y===ny){
+          if(state.currentWord[state.progress] && f.char===state.currentWord[state.progress]){
+            state.progress++; state.score++;
+            if(state.progress>=state.currentWord.length){ newWord(); }
+            else{ spawnLetters(); }
           }
-          state.progress++;
-          if(state.progress >= state.currentWord.length){
-            // 完成此單字，進入下一個
-            startNewWord();
-          }else{
-            spawnNextLetter();
-          }
-          updateHUD();
-        }else{
-          // 不應發生（目前只會產生正確字母），保險：當作沒吃到
+          ate=true; break;
         }
-      }else{
-        state.snake.pop();
       }
-
+      if(!ate) state.snake.pop();
       draw();
     }
 
-    function isReverse(a,b){ return a.x===-b.x && a.y===-b.y }
-
-    function queueDir(dx,dy){
-      const d = {x:dx,y:dy};
-      const last = state.queue[state.queue.length-1] || state.nextDir;
-      if(isReverse(d, state.dir) || (d.x===last.x && d.y===last.y)) return;
-      state.queue.push(d);
-    }
-
-    // --- 繪圖 ---
     function draw(){
-      // 背景
-      ctx.fillStyle = '#081026';
-      ctx.fillRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
-
-      // 盤面格線（低調）
-      ctx.strokeStyle = '#0f1b36';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for(let i=1;i<GRID;i++){
-        ctx.moveTo(i*CELL+.5,0); ctx.lineTo(i*CELL+.5, CANVAS_SIZE);
-        ctx.moveTo(0, i*CELL+.5); ctx.lineTo(CANVAS_SIZE, i*CELL+.5);
+      ctx.fillStyle="#000";ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+      // 食物 (顯示字母)
+      for(const f of state.food){
+        ctx.fillStyle="#f59e0b";ctx.beginPath();ctx.roundRect(f.x*CELL+2,f.y*CELL+2,CELL-4,CELL-4,6);ctx.fill();
+        ctx.fillStyle="#111";ctx.font="bold 12px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText(f.char,f.x*CELL+CELL/2,f.y*CELL+CELL/2);
       }
-      ctx.stroke();
-
-      // 單字字母磚（食物）
-      if(state.food){
-        const fx = state.food.x*CELL, fy = state.food.y*CELL;
-        // 磚
-        const r = 6;
-        roundRect(ctx, fx+2, fy+2, CELL-4, CELL-4, r);
-        const grd = ctx.createLinearGradient(fx, fy, fx, fy+CELL);
-        grd.addColorStop(0, COLORS.tile1);
-        grd.addColorStop(1, COLORS.tile2);
-        ctx.fillStyle = grd; ctx.fill();
-        // 字母
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 12px ui-sans-serif, system-ui';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(state.food.char, fx + CELL/2, fy + CELL/2 + 0.5);
-      }
-
       // 蛇
       for(let i=0;i<state.snake.length;i++){
-        const p = state.snake[i];
-        const x = p.x*CELL, y = p.y*CELL;
+        const p=state.snake[i];
+        const x=p.x*CELL,y=p.y*CELL;
+        ctx.fillStyle=i===0?"#22c55e":"#16a34a";
+        ctx.beginPath();ctx.roundRect(x+2,y+2,CELL-4,CELL-4,5);ctx.fill();
         if(i===0){
-          const grd = ctx.createLinearGradient(x, y, x, y+CELL);
-          grd.addColorStop(0, '#22c55e'); grd.addColorStop(1, '#15803d');
-          ctx.fillStyle = grd;
-          roundRect(ctx, x+2, y+2, CELL-4, CELL-4, 6);
-          ctx.fill();
-          // 眼睛
-          ctx.fillStyle = '#0a0f1f';
-          ctx.beginPath(); ctx.arc(x+CELL*0.35, y+CELL*0.4, 2.2, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.arc(x+CELL*0.65, y+CELL*0.4, 2.2, 0, Math.PI*2); ctx.fill();
-        }else{
-          ctx.fillStyle = i%2 ? '#16a34a' : '#22c55e';
-          roundRect(ctx, x+3, y+3, CELL-6, CELL-6, 5);
-          ctx.fill();
+          ctx.fillStyle="#000";
+          ctx.beginPath();ctx.arc(x+CELL*0.35,y+CELL*0.4,2,0,Math.PI*2);ctx.fill();
+          ctx.beginPath();ctx.arc(x+CELL*0.65,y+CELL*0.4,2,0,Math.PI*2);ctx.fill();
         }
       }
-
-      // 若結束，顯示遮罩
       if(state.over){
-        ctx.fillStyle = '#00000088';
-        ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
-        ctx.fillStyle = '#e5e7eb';
-        ctx.font = 'bold 28px ui-sans-serif, system-ui';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(state.cleared? '通關！全部完成' : '遊戲結束', CANVAS_SIZE/2, CANVAS_SIZE/2 - 14);
-        ctx.font = '16px ui-sans-serif, system-ui';
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('按「重來」或 Enter 重新開始', CANVAS_SIZE/2, CANVAS_SIZE/2 + 16);
+        ctx.fillStyle="#000a";ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+        ctx.fillStyle="#fff";ctx.font="bold 28px sans-serif";ctx.textAlign="center";
+        ctx.fillText(state.cleared?"通關成功!":"遊戲結束",CANVAS_SIZE/2,CANVAS_SIZE/2);
       }
+      scoreEl.textContent=state.score;
     }
 
-    function roundRect(ctx, x, y, w, h, r){
-      ctx.beginPath();
-      ctx.moveTo(x+r, y);
-      ctx.arcTo(x+w, y, x+w, y+h, r);
-      ctx.arcTo(x+w, y+h, x, y+h, r);
-      ctx.arcTo(x, y+h, x, y, r);
-      ctx.arcTo(x, y, x+w, y, r);
-      ctx.closePath();
-    }
+    function gameOver(){ state.over=true; state.cleared=false; }
+    function gameClear(){ state.over=true; state.cleared=true; draw(); }
 
-    // --- 事件 ---
-    document.addEventListener('keydown', (e)=>{
-      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ' ,'Enter','w','a','s','d','W','A','S','D'].includes(e.key)) e.preventDefault();
-      switch(e.key){
-        case 'ArrowUp': case 'w': case 'W': queueDir(0,-1); break;
-        case 'ArrowDown': case 's': case 'S': queueDir(0, 1); break;
-        case 'ArrowLeft': case 'a': case 'A': queueDir(-1,0); break;
-        case 'ArrowRight': case 'd': case 'D': queueDir(1,0); break;
-        case ' ': state.running ? pause() : start(); break;
-        case 'Enter': init(); start(); break;
-      }
+    document.addEventListener('keydown',e=>{
+      if(e.key==="ArrowUp") state.dir={x:0,y:-1};
+      if(e.key==="ArrowDown") state.dir={x:0,y:1};
+      if(e.key==="ArrowLeft") state.dir={x:-1,y:0};
+      if(e.key==="ArrowRight") state.dir={x:1,y:0};
     });
 
-    // 虛擬方向鍵
-    dpad.forEach(btn=> btn.addEventListener('click', ()=>{
-      const d = btn.dataset.dir;
-      if(d==='up') queueDir(0,-1);
-      if(d==='down') queueDir(0,1);
-      if(d==='left') queueDir(-1,0);
-      if(d==='right') queueDir(1,0);
-      canvas.focus();
-    }));
-
-    // 觸控滑動（手機靈敏度提高）
-    const SWIPE_MIN = window.matchMedia('(max-width: 520px)').matches ? 12 : 20;
-    canvas.addEventListener('touchstart', (e)=>{
-      const t = e.touches[0]; state.lastTouch = {x:t.clientX, y:t.clientY, t:Date.now()};
-    }, {passive:true});
-    canvas.addEventListener('touchend', (e)=>{
-      if(!state.lastTouch) return;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - state.lastTouch.x;
-      const dy = t.clientY - state.lastTouch.y;
-      const adx = Math.abs(dx), ady = Math.abs(dy);
-      if(Math.max(adx,ady) < SWIPE_MIN) return;
-      if(adx > ady){ queueDir(dx>0?1:-1, 0); } else { queueDir(0, dy>0?1:-1); }
-      state.lastTouch = null;
-    }, {passive:true});
-
-    // 控制區
-    function start(){ if(state.over) return; if(state.running) return; state.running=true; schedule(); setStatus('進行中'); toggleBtn.textContent='暫停'; }
-    function pause(){ if(!state.running) return; state.running=false; clearInterval(state.timer); setStatus('已暫停'); toggleBtn.textContent='繼續'; }
-    function toggle(){ state.running ? pause() : start(); }
-    toggleBtn.addEventListener('click', ()=>{ if(state.over){ init(); start(); } else { toggle(); } });
-    resetBtn.addEventListener('click', ()=>{ init(); draw(); });
-    speedSel.addEventListener('change', ()=>{ state.tickMs = parseInt(speedSel.value,10); updateHUD(); if(state.running) schedule(); });
-    wallModeSel.addEventListener('change', ()=>{ state.wallMode = wallModeSel.value; });
-
-    // 從同層 english.txt 載入單字
-    async function loadWordsFromFile(){
-      try{
-        const resp = await fetch('english.txt?v=' + Date.now(), {cache:'no-store'});
-        if(!resp.ok) throw new Error('HTTP '+resp.status);
-        const text = await resp.text();
-        const words = parseWordText(text);
-        if(words.length){
-          state.originalWords = words;
-          setStatus(`已載入 ${words.length} 個單字（english.txt）`);
-          return true;
-        }
-        throw new Error('no valid words');
-      }catch(err){
-        console.warn('loadWordsFromFile failed:', err);
-        return false;
-      }
-    }
-
-    function setStatus(msg){ statusChip.style.display='block'; statusChip.textContent = msg; }
-
-    async function boot(){
-      const ok = await loadWordsFromFile();
-      if(!ok){
-        state.originalWords = ["APPLE","BANANA","ORANGE","MELON","GRAPE","WATER","SNAKE","GAME","CODE","DEBUG"]; 
-        setStatus('找不到 english.txt 或無有效單字，已載入示例');
-      }
+    (async()=>{
+      state.words=await loadWords();
       init();
-    }
-
-    // 匯出（下載）目前頁面的 index.html
-    document.getElementById('exportBtn')?.addEventListener('click', (e)=>{
-      e.preventDefault();
-      const blob = new Blob([document.documentElement.outerHTML], {type:'text/html;charset=utf-8'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'index.html';
-      a.click();
-      setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
-    });
-
-    // 啟動
-    boot();
+      setInterval(()=>{if(!state.over) tick();},150);
+    })();
   </script>
 </body>
 </html>
