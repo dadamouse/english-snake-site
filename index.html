@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>貪食蛇 Snake</title>
+  <title>貪食蛇 Snake + 英文單字模式</title>
   <style>
     :root{
       --bg:#0f172a; /* slate-900 */
@@ -15,6 +15,9 @@
       --danger:#ef4444; /* red-500 */
       --grid:#1f2937; /* gray-800 */
       --cell:#0b1224;
+      --tile1:#f59e0b; /* amber-500 */
+      --tile2:#b45309; /* amber-700 */
+      --ok:#34d399; /* emerald-400 */
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -23,27 +26,33 @@
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
       color:var(--text); display:flex; align-items:center; justify-content:center; padding:16px;
     }
-    .app{ width: min(100%, 720px); }
+    .app{ width: min(100%, 820px); }
     .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-    .title{ font-weight:800; letter-spacing:.5px; font-size: clamp(20px, 3vw, 28px);}
+    .title{ font-weight:800; letter-spacing:.5px; font-size: clamp(20px, 3vw, 28px);}    
     .panel{ background:linear-gradient(180deg, #0b1224, #0a0f1f); border:1px solid #1f2937; border-radius:16px; box-shadow: 0 10px 30px #0008; }
-    .hud{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; gap:10px; }
+    .hud{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; gap:10px; flex-wrap:wrap }
     .hud .stat{ display:flex; gap:6px; align-items:center; font-variant-numeric: tabular-nums; }
     .hud .stat b{ font-size:18px }
     .hud .chip{ padding:6px 10px; border-radius:999px; background:#0b1224; border:1px solid #1f2937; color:var(--muted)}
+
+    .wordbox{ display:flex; align-items:center; gap:10px; }
+    #wordView{ font-weight:800; letter-spacing:2px; font-size: clamp(16px, 3vw, 22px)}
+    #wordView .ok{ color:var(--ok) }
+    #wordView .todo{ color:var(--muted) }
+    #nextLetter{ padding:2px 8px; border-radius:10px; border:1px dashed #334155; color:#f8fafc; background:#0b1224 }
 
     .canvas-wrap{ position:relative; padding:12px; }
     canvas{ width:100%; height:auto; display:block; background:linear-gradient(180deg, #0a1326, #091021); border-radius:12px; border:1px solid #1e293b; }
 
     .controls{ display:grid; grid-template-columns:1fr auto; gap:12px; padding:12px 16px; border-top:1px solid #1e293b; }
-    .btn{
-      background:#0b1224; border:1px solid #1f2937; color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease; user-select:none;
-    }
+    .btn{ background:#0b1224; border:1px solid #1f2937; color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600; transition: transform .08s ease, background .2s ease, border-color .2s ease; user-select:none; }
     .btn:hover{ background:#0e1630 }
     .btn:active{ transform: translateY(1px) }
     .btn.primary{ background:linear-gradient(180deg, var(--accent), var(--accent-2)); border-color:#065f46 }
     .btn.danger{ background:linear-gradient(180deg, #ef4444, #b91c1c); border-color:#7f1d1d }
+
+    .uploader{ display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+    .uploader input[type=file]{ background:#0b1224; color:var(--text); border:1px solid #1f2937; padding:8px; border-radius:10px }
 
     .dpad{ display:grid; grid-template-columns:64px 64px 64px; grid-template-rows:64px 64px 64px; gap:10px; justify-content:center; margin-left:auto; }
     .dpad .pad{ display:flex; align-items:center; justify-content:center; background:#0b1224; border:1px solid #1f2937; border-radius:14px; font-size:20px; cursor:pointer; }
@@ -54,7 +63,7 @@
     .links{ display:flex; gap:10px; justify-content:center; margin-top:6px }
     .link{ color:#93c5fd; text-decoration:none }
 
-    @media (max-width: 480px){
+    @media (max-width: 520px){
       .controls{ grid-template-columns:1fr; }
       .dpad{ margin: 4px 0 0 0 }
     }
@@ -63,7 +72,7 @@
 <body>
   <div class="app">
     <div class="header">
-      <div class="title">🟩 貪食蛇 Snake</div>
+      <div class="title">🟩 貪食蛇 Snake · 英文單字模式</div>
       <div class="chip" id="status" style="display:none"></div>
     </div>
 
@@ -71,6 +80,12 @@
       <div class="stat">分數：<b id="score">0</b></div>
       <div class="stat">最佳：<b id="best">0</b></div>
       <div class="stat chip">速度：<b id="speedLabel">中等</b></div>
+      <div class="stat chip">剩餘單字：<b id="leftCnt">0</b></div>
+      <div class="wordbox">
+        <span>單字：</span>
+        <span id="wordView"><span class="ok"></span><span class="todo"></span></span>
+        <span>下一字母：<span id="nextLetter" aria-live="polite">—</span></span>
+      </div>
     </div>
 
     <div class="panel canvas-wrap">
@@ -78,7 +93,7 @@
     </div>
 
     <div class="panel controls">
-      <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
         <button class="btn primary" id="toggle">開始</button>
         <button class="btn" id="reset">重來</button>
         <label class="btn" style="display:flex; align-items:center; gap:8px">
@@ -99,6 +114,11 @@
             </select>
           </span>
         </label>
+        <div class="uploader">
+          <label class="btn" for="wordFile">上傳單字</label>
+          <input type="file" id="wordFile" accept=".txt,.csv"/>
+          <button class="btn" id="useSample">載入示例</button>
+        </div>
       </div>
 
       <div class="dpad" aria-label="virtual dpad">
@@ -115,7 +135,8 @@
     </div>
 
     <div class="footer">
-      操作：方向鍵 / WASD、空白鍵暫停、Enter 重來、手機可滑動操控。
+      操作：方向鍵 / WASD、空白鍵暫停、Enter 重來、手機可滑動操控。<br/>
+      上傳格式：txt 或 csv；一行一個單字，或以逗號分隔（例：cat,dog,apple）。<br/>
       <div class="links">
         <a class="link" href="#" id="exportBtn">匯出成 .zip</a>
       </div>
@@ -140,6 +161,12 @@
     const toggleBtn = document.getElementById('toggle');
     const resetBtn = document.getElementById('reset');
     const statusChip = document.getElementById('status');
+    const leftCntEl = document.getElementById('leftCnt');
+    const wordFile = document.getElementById('wordFile');
+    const useSampleBtn = document.getElementById('useSample');
+
+    const wordView = document.getElementById('wordView');
+    const nextLetterEl = document.getElementById('nextLetter');
 
     const dpad = document.querySelectorAll('.dpad .pad[data-dir]');
 
@@ -147,10 +174,33 @@
 
     let rng = (min, max)=> Math.floor(Math.random()*(max-min+1))+min;
 
+    // --- 單字工具 ---
+    function normalizeWord(w){
+      const s = (w||'').toUpperCase().replace(/[^A-Z]/g,'');
+      return s.length? s : null;
+    }
+    function parseWordText(text){
+      const raw = text.split(/
+?
+|,|;|	/g).map(s=>s.trim());
+      const arr = [];
+      const seen = new Set();
+      for(const r of raw){
+        const n = normalizeWord(r);
+        if(n && !seen.has(n)) { arr.push(n); seen.add(n); }
+      }
+      return arr;
+    }
+    function shuffle(a){
+      for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+      return a;
+    }
+
     // 遊戲狀態
     let state = {
       running: false,
       over: false,
+      cleared: false,
       tickMs: parseInt(speedSel.value, 10),
       wallMode: wallModeSel.value, // 'solid' | 'wrap'
       score: 0,
@@ -159,25 +209,61 @@
       nextDir: {x:1, y:0}, // 將在下一tick套用
       queue: [], // 緩衝方向，避免連點時逆向
       snake: [],
-      food: null,
+      food: null, // {x,y,char}
       timer: null,
       lastTouch: null,
+
+      // 單字模式
+      originalWords: [], // 來源單字
+      wordsQueue: [],    // 尚未完成的單字（隨機順序）
+      currentWord: null, // 目前單字（字串）
+      progress: 0,       // 已完成的字母數
     };
 
     function init(){
-      state.running = false; state.over = false; state.score = 0; state.queue = [];
+      state.running = false; state.over = false; state.cleared = false; state.score = 0; state.queue = [];
       state.dir = {x:1, y:0}; state.nextDir = {x:1, y:0};
       const start = {x: Math.floor(GRID/3), y: Math.floor(GRID/2)};
       state.snake = [start, {x:start.x-1,y:start.y}, {x:start.x-2,y:start.y}];
-      state.food = spawnFood();
+
+      // 若無單字，載入示例
+      if(!state.originalWords.length){
+        state.originalWords = ["APPLE","BANANA","ORANGE","MELON","GRAPE","WATER","SNAKE","GAME","CODE","DEBUG"]; 
+      }
+      state.wordsQueue = shuffle([...state.originalWords]);
+      startNewWord();
+
       updateHUD();
       draw();
+    }
+
+    function startNewWord(){
+      state.currentWord = state.wordsQueue.shift() || null;
+      state.progress = 0;
+      if(!state.currentWord){
+        // 通關
+        state.running = false; state.over = true; state.cleared = true; clearInterval(state.timer);
+        setStatus('通關！恭喜');
+        draw(); updateHUD();
+        return;
+      }
+      spawnNextLetter();
+      updateHUD();
     }
 
     function updateHUD(){
       scoreEl.textContent = state.score;
       bestEl.textContent = state.best;
       speedLabel.textContent = labelForSpeed(state.tickMs);
+      leftCntEl.textContent = Math.max(0, state.wordsQueue.length + (state.currentWord?1:0) - (state.progress?1:0));
+      renderWordView();
+      nextLetterEl.textContent = state.currentWord? state.currentWord[state.progress] : '—';
+    }
+
+    function renderWordView(){
+      const ok = state.currentWord? state.currentWord.slice(0, state.progress) : '';
+      const todo = state.currentWord? state.currentWord.slice(state.progress) : '';
+      wordView.innerHTML = `<span class="ok">${ok}</span><span class="todo">${todo}</span>`;
     }
 
     function labelForSpeed(ms){
@@ -187,11 +273,13 @@
       return '悠閒';
     }
 
-    function spawnFood(){
+    function spawnNextLetter(){
+      if(!state.currentWord) return;
+      const letter = state.currentWord[state.progress];
       const occupied = new Set(state.snake.map(p=> p.x+","+p.y));
       let p;
       do{ p = {x: rng(0, GRID-1), y: rng(0, GRID-1)} } while(occupied.has(p.x+","+p.y));
-      return p;
+      state.food = {x:p.x, y:p.y, char: letter};
     }
 
     function start(){ if(state.over) return; if(state.running) return; state.running=true; schedule(); setStatus('進行中'); toggleBtn.textContent='暫停'; }
@@ -233,13 +321,24 @@
       state.snake.unshift(newHead);
 
       if(state.food && newHead.x===state.food.x && newHead.y===state.food.y){
-        state.score += 1;
-        // 提升一點速度（最低 45ms）
-        if(state.tickMs > 55 && state.score % 5 === 0){
-          state.tickMs -= 5; schedule();
+        // 吃到正確下一字母
+        if(state.currentWord && state.food.char === state.currentWord[state.progress]){
+          state.score += 1;
+          // 提升一點速度（最低 55ms）
+          if(state.tickMs > 55 && state.score % 5 === 0){
+            state.tickMs -= 5; schedule();
+          }
+          state.progress++;
+          if(state.progress >= state.currentWord.length){
+            // 完成此單字，進入下一個
+            startNewWord();
+          }else{
+            spawnNextLetter();
+          }
+          updateHUD();
+        }else{
+          // 不應發生（目前只會產生正確字母），保險：當作沒吃到
         }
-        state.food = spawnFood();
-        updateHUD();
       }else{
         state.snake.pop();
       }
@@ -251,7 +350,6 @@
 
     function queueDir(dx,dy){
       const d = {x:dx,y:dy};
-      // 不允許直接逆向，也避免把多個相同方向塞爆queue
       const last = state.queue[state.queue.length-1] || state.nextDir;
       if(isReverse(d, state.dir) || (d.x===last.x && d.y===last.y)) return;
       state.queue.push(d);
@@ -273,15 +371,21 @@
       }
       ctx.stroke();
 
-      // 食物
+      // 單字字母磚（食物）
       if(state.food){
         const fx = state.food.x*CELL, fy = state.food.y*CELL;
-        const r = CELL*0.35; const cx = fx+CELL/2, cy = fy+CELL/2;
-        const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
-        grd.addColorStop(0, '#f97316'); // orange-500
-        grd.addColorStop(1, '#9a3412'); // orange-800
-        ctx.fillStyle = grd;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+        // 磚
+        const r = 6;
+        roundRect(ctx, fx+2, fy+2, CELL-4, CELL-4, r);
+        const grd = ctx.createLinearGradient(fx, fy, fx, fy+CELL);
+        grd.addColorStop(0, 'var(--tile1)');
+        grd.addColorStop(1, 'var(--tile2)');
+        ctx.fillStyle = grd; ctx.fill();
+        // 字母
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 12px ui-sans-serif, system-ui';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(state.food.char, fx + CELL/2, fy + CELL/2 + 0.5);
       }
 
       // 蛇
@@ -289,7 +393,6 @@
         const p = state.snake[i];
         const x = p.x*CELL, y = p.y*CELL;
         if(i===0){
-          // 頭
           const grd = ctx.createLinearGradient(x, y, x, y+CELL);
           grd.addColorStop(0, '#22c55e'); grd.addColorStop(1, '#15803d');
           ctx.fillStyle = grd;
@@ -313,7 +416,7 @@
         ctx.fillStyle = '#e5e7eb';
         ctx.font = 'bold 28px ui-sans-serif, system-ui';
         ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('遊戲結束', CANVAS_SIZE/2, CANVAS_SIZE/2 - 14);
+        ctx.fillText(state.cleared? '通關！全部完成' : '遊戲結束', CANVAS_SIZE/2, CANVAS_SIZE/2 - 14);
         ctx.font = '16px ui-sans-serif, system-ui';
         ctx.fillStyle = '#94a3b8';
         ctx.fillText('按「重來」或 Enter 重新開始', CANVAS_SIZE/2, CANVAS_SIZE/2 + 16);
@@ -337,7 +440,7 @@
         case 'ArrowUp': case 'w': case 'W': queueDir(0,-1); break;
         case 'ArrowDown': case 's': case 'S': queueDir(0, 1); break;
         case 'ArrowLeft': case 'a': case 'A': queueDir(-1,0); break;
-        case 'ArrowRight': case 'd': case 'D': queueDir(1, 0); break;
+        case 'ArrowRight': case 'd': case 'D': queueDir(1,0); break;
         case ' ': state.running ? pause() : start(); break;
         case 'Enter': init(); start(); break;
       }
@@ -374,12 +477,30 @@
     speedSel.addEventListener('change', ()=>{ state.tickMs = parseInt(speedSel.value,10); updateHUD(); if(state.running) schedule(); });
     wallModeSel.addEventListener('change', ()=>{ state.wallMode = wallModeSel.value; });
 
+    // 上傳單字檔
+    wordFile.addEventListener('change', async ()=>{
+      const f = wordFile.files && wordFile.files[0];
+      if(!f) return;
+      const text = await f.text();
+      const words = parseWordText(text);
+      if(!words.length){ alert('沒有讀到有效的單字（只接受英文字母 A-Z）。'); return; }
+      state.originalWords = words;
+      alert(`已載入 ${words.length} 個單字
+範例：${words.slice(0,5).join(', ')}${words.length>5?'…':''}`);
+      init();
+    });
+
+    // 內建示例
+    useSampleBtn.addEventListener('click', ()=>{
+      state.originalWords = ["APPLE","BANANA","ORANGE","MELON","GRAPE","WATER","SNAKE","GAME","CODE","DEBUG"]; 
+      init();
+    });
+
     // 匯出 zip（提供快速部署）
     document.getElementById('exportBtn').addEventListener('click', (e)=>{
       e.preventDefault();
       const blob = new Blob([document.documentElement.outerHTML], {type:'text/html;charset=utf-8'});
       const file = new File([blob], 'index.html', {type:'text/html'});
-      // 建立臨時 zip（簡易：只提供 index.html，瀏覽器直接下載 .html，同效果）
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
       a.href = url; a.download = 'index.html'; a.click();
@@ -388,7 +509,6 @@
 
     // 啟動
     init();
-
   </script>
 </body>
 </html>
