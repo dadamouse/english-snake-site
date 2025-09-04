@@ -174,9 +174,7 @@
       return s.length? s : null;
     }
     function parseWordText(text){
-      const raw = text.split(/
-?
-|,|;|	/g).map(s=>s.trim());
+      const raw = text.split(/\r?\n|,|;|\t/g).map(s=>s.trim());
       const arr = [];
       const seen = new Set();
       for(const r of raw){
