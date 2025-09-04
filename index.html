@@ -20,7 +20,7 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{ margin:0; background: radial-gradient(1200px 800px at 70% -10%, #1f2937, var(--bg)); font-family: system-ui,-apple-system,"Segoe UI",Roboto,Noto Sans,"Helvetica Neue",Arial; color:var(--text); display:flex; align-items:center; justify-content:center; padding:16px; }
+    body{ margin:0; background: radial-gradient(1200px 800px at 70% -10%, #1f2937, var(--bg)); font-family: system-ui,-apple-system,"Segoe UI",Roboto,Noto Sans,"Helvetica Neue",Arial; color:var(--text); display:flex; align-items:center; justify-content:center; padding:16px; flex-direction:column; }
     .app{ width: min(100%, 820px); }
     .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
     .title{ font-weight:800; letter-spacing:.5px; font-size: clamp(20px, 3vw, 28px);}    
@@ -34,6 +34,16 @@
     #wordHint{ letter-spacing:2px; color:var(--ok) }
 
     canvas{ width:100%; height:auto; display:block; background:linear-gradient(180deg,#0a1326,#091021); border-radius:12px; border:1px solid #1e293b; margin-top:12px; }
+
+    .dpad{ display:flex; flex-direction:column; align-items:center; margin-top:12px; }
+    .dpad-row{ display:flex; justify-content:center; }
+    .dpad button{ font-size:24px; padding:20px; margin:6px; border-radius:12px; background:#0b1224; color:#fff; border:2px solid #1f2937; min-width:60px; min-height:60px; }
+    .dpad button:active{ background:#1e293b; }
+
+    @media(max-width:600px){
+      canvas{ width:100%; height:auto; }
+      .dpad button{ font-size:28px; padding:24px; min-width:70px; min-height:70px; }
+    }
   </style>
 </head>
 <body>
@@ -55,6 +65,15 @@
     <div class="panel">
       <canvas id="game" width="560" height="560"></canvas>
     </div>
+
+    <div class="dpad">
+      <div><button data-dir="up">▲</button></div>
+      <div class="dpad-row">
+        <button data-dir="left">◀</button>
+        <button data-dir="right">▶</button>
+      </div>
+      <div><button data-dir="down">▼</button></div>
+    </div>
   </div>
 
   <script>
@@ -68,7 +87,7 @@
     const leftCntEl=document.getElementById('leftCnt');
     const wordHint=document.getElementById('wordHint');
 
-    const BEST_KEY='snake_best_score_v5';
+    const BEST_KEY='snake_best_score_v7';
     let rng=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 
     // 從 english.txt 載入 [英文, 中文提示]
@@ -108,7 +127,7 @@
     }
 
     function updateHint(){
-      // 中文提示 + 英文字樣一起顯示
+      // 只顯示中文提示
       wordHint.textContent = state.currentHint;
     }
 
@@ -157,7 +176,9 @@
       // 食物 (顯示字母)
       for(const f of state.food){
         ctx.fillStyle="#f59e0b";ctx.beginPath();ctx.roundRect(f.x*CELL+2,f.y*CELL+2,CELL-4,CELL-4,6);ctx.fill();
-        ctx.fillStyle="#111";ctx.font="bold 12px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillStyle="#fff";ctx.strokeStyle="#000";ctx.lineWidth=3;
+        ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.strokeText(f.char,f.x*CELL+CELL/2,f.y*CELL+CELL/2);
         ctx.fillText(f.char,f.x*CELL+CELL/2,f.y*CELL+CELL/2);
       }
       // 蛇
@@ -188,6 +209,16 @@
       if(e.key==="ArrowDown") state.dir={x:0,y:1};
       if(e.key==="ArrowLeft") state.dir={x:-1,y:0};
       if(e.key==="ArrowRight") state.dir={x:1,y:0};
+    });
+
+    document.querySelectorAll('.dpad button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const d=btn.dataset.dir;
+        if(d==='up') state.dir={x:0,y:-1};
+        if(d==='down') state.dir={x:0,y:1};
+        if(d==='left') state.dir={x:-1,y:0};
+        if(d==='right') state.dir={x:1,y:0};
+      });
     });
 
     (async()=>{
