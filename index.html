@@ -35,14 +35,13 @@
 
     canvas{ width:100%; height:auto; display:block; background:linear-gradient(180deg,#0a1326,#091021); border-radius:12px; border:1px solid #1e293b; margin-top:12px; }
 
-    .dpad{ display:flex; flex-direction:column; align-items:center; margin-top:12px; }
-    .dpad-row{ display:flex; justify-content:center; }
-    .dpad button{ font-size:24px; padding:20px; margin:6px; border-radius:12px; background:#0b1224; color:#fff; border:2px solid #1f2937; min-width:60px; min-height:60px; }
+    .dpad{ display:flex; justify-content:center; margin-top:12px; gap:10px; flex-wrap:wrap; }
+    .dpad button{ font-size:26px; padding:20px; margin:4px; border-radius:12px; background:#0b1224; color:#fff; border:2px solid #1f2937; min-width:70px; min-height:70px; }
     .dpad button:active{ background:#1e293b; }
 
     @media(max-width:600px){
       canvas{ width:100%; height:auto; }
-      .dpad button{ font-size:28px; padding:24px; min-width:70px; min-height:70px; }
+      .dpad button{ font-size:32px; padding:24px; min-width:80px; min-height:80px; }
     }
   </style>
 </head>
@@ -63,21 +62,19 @@
     </div>
 
     <div class="panel">
-      <canvas id="game" width="560" height="560"></canvas>
+      <canvas id="game" width="400" height="400"></canvas>
     </div>
 
     <div class="dpad">
-      <div><button data-dir="up">▲</button></div>
-      <div class="dpad-row">
-        <button data-dir="left">◀</button>
-        <button data-dir="right">▶</button>
-      </div>
-      <div><button data-dir="down">▼</button></div>
+      <button data-dir="up">▲</button>
+      <button data-dir="left">◀</button>
+      <button data-dir="down">▼</button>
+      <button data-dir="right">▶</button>
     </div>
   </div>
 
   <script>
-    const GRID=28, CELL=20, CANVAS_SIZE=GRID*CELL;
+    const GRID=20, CELL=20, CANVAS_SIZE=GRID*CELL;
     const canvas=document.getElementById('game');
     const ctx=canvas.getContext('2d');
     canvas.width=CANVAS_SIZE; canvas.height=CANVAS_SIZE;
@@ -87,7 +84,7 @@
     const leftCntEl=document.getElementById('leftCnt');
     const wordHint=document.getElementById('wordHint');
 
-    const BEST_KEY='snake_best_score_v7';
+    const BEST_KEY='snake_best_score_v8';
     let rng=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 
     // 從 english.txt 載入 [英文, 中文提示]
@@ -106,7 +103,7 @@
       }
     }
 
-    let state={running:true, over:false, score:0, best:parseInt(localStorage.getItem(BEST_KEY)||'0',10), snake:[], dir:{x:1,y:0}, food:[], words:[], queue:[], currentWord:null, currentHint:"", progress:0};
+    let state={running:true, over:false, score:0, best:parseInt(localStorage.getItem(BEST_KEY)||'0',10), snake:[], dir:{x:1,y:0}, food:[], words:[], queue:[], currentWord:null, currentHint:"", progress:0, lastTouch:null};
 
     function init(){
       state.snake=[{x:5,y:5},{x:4,y:5},{x:3,y:5}];
@@ -127,7 +124,6 @@
     }
 
     function updateHint(){
-      // 只顯示中文提示
       wordHint.textContent = state.currentHint;
     }
 
@@ -173,11 +169,11 @@
 
     function draw(){
       ctx.fillStyle="#000";ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
-      // 食物 (顯示字母)
+      // 食物 (顯示字母放大)
       for(const f of state.food){
         ctx.fillStyle="#f59e0b";ctx.beginPath();ctx.roundRect(f.x*CELL+2,f.y*CELL+2,CELL-4,CELL-4,6);ctx.fill();
         ctx.fillStyle="#fff";ctx.strokeStyle="#000";ctx.lineWidth=3;
-        ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.font="bold 22px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
         ctx.strokeText(f.char,f.x*CELL+CELL/2,f.y*CELL+CELL/2);
         ctx.fillText(f.char,f.x*CELL+CELL/2,f.y*CELL+CELL/2);
       }
@@ -220,6 +216,26 @@
         if(d==='right') state.dir={x:1,y:0};
       });
     });
+
+    // 觸控滑動控制
+    canvas.addEventListener('touchstart',e=>{
+      const t=e.touches[0];
+      state.lastTouch={x:t.clientX,y:t.clientY};
+    },{passive:true});
+    canvas.addEventListener('touchend',e=>{
+      if(!state.lastTouch) return;
+      const t=e.changedTouches[0];
+      const dx=t.clientX-state.lastTouch.x;
+      const dy=t.clientY-state.lastTouch.y;
+      if(Math.abs(dx)>Math.abs(dy)){
+        if(dx>20) state.dir={x:1,y:0};
+        if(dx<-20) state.dir={x:-1,y:0};
+      }else{
+        if(dy>20) state.dir={x:0,y:1};
+        if(dy<-20) state.dir={x:0,y:-1};
+      }
+      state.lastTouch=null;
+    },{passive:true});
 
     (async()=>{
       state.words=await loadWords();
